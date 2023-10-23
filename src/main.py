@@ -91,10 +91,10 @@ def main():
 
     current_datetime = datetime.datetime.now()
 
-    if current_datetime < sr:
+    if current_datetime.timestamp() < sr.timestamp():
         next_run = sr
         scheduled_fn = sunrise_event
-    elif current_datetime > sr and current_datetime < ss:
+    elif current_datetime.timestamp() > sr.timestamp() and current_datetime.timestamp() < ss.timestamp():
         next_run = ss
         scheduled_fn = sunset_event
     else:

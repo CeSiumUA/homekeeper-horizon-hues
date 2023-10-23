@@ -1,8 +1,8 @@
 FROM python:3.11-alpine
 
 # Set the time zone to Kyiv
-RUN ln -sf /usr/share/zoneinfo/Europe/Kiev /etc/localtime
-RUN dpkg-reconfigure -f noninteractive tzdata
+RUN apk add --no-cache tzdata
+ENV TZ=Europe/Kiev
 
 WORKDIR /app
 
