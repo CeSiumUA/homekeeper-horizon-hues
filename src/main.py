@@ -72,7 +72,7 @@ def zero_hour_event():
     SCHEDULER.add_job(sunrise_event, 'date', run_date=sr)
     SCHEDULER.add_job(sunset_event, 'date', run_date=ss)
 
-def get_tomorrow_zero_hour(curr_datetime: datetime.datetime | None):
+def get_tomorrow_zero_hour(curr_datetime: datetime.datetime | None = None):
     if curr_datetime is None:
         curr_datetime = datetime.datetime.now()
     tomorrow = curr_datetime + datetime.timedelta(days=1)
