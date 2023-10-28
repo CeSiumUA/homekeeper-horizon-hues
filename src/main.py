@@ -8,17 +8,17 @@ from paho.mqtt import client as mqtt_client
 import topics
 
 def get_lon_lat():
-    longtitude = os.environ.get("DEVICE_LONGTITUDE")
-    if longtitude is None:
-        logging.fatal("longtitude not setted")
-    longtitude = float(longtitude)
+    longitude = os.environ.get("DEVICE_LONGITUDE")
+    if longitude is None:
+        logging.fatal("longitude not set")
+    longitude = float(longitude)
 
     latitude = os.environ.get("DEVICE_LATITUDE")
     if latitude is None:
-        logging.fatal("latitude not setted")
+        logging.fatal("latitude not set")
     latitude = float(latitude)
 
-    return longtitude, latitude
+    return longitude, latitude
 
 def on_mqtt_connect(client, userdata, flags, rc):
     if rc == 0:
