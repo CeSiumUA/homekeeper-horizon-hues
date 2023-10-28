@@ -7,9 +7,15 @@
 	"settings": {
 		"cSpell.words": [
 			"apscheduler",
+			"chrono",
+			"dailyevents",
+			"dbaccess",
+			"homekeeper",
 			"levelname",
 			"mqtt",
+			"mqttmodule",
 			"paho",
+			"pymongo",
 			"suntime",
 			"userdata"
 		]

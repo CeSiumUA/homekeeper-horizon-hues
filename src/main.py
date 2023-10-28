@@ -1,113 +1,47 @@
-import suntime
-import datetime
-import os
+import chrono
 import logging
-import random
-from apscheduler.schedulers.background import BlockingScheduler
-from paho.mqtt import client as mqtt_client
-import topics
-
-def get_lon_lat():
-    longitude = os.environ.get("DEVICE_LONGITUDE")
-    if longitude is None:
-        logging.fatal("longitude not set")
-    longitude = float(longitude)
-
-    latitude = os.environ.get("DEVICE_LATITUDE")
-    if latitude is None:
-        logging.fatal("latitude not set")
-    latitude = float(latitude)
-
-    return longitude, latitude
-
-def on_mqtt_connect(client, userdata, flags, rc):
-    if rc == 0:
-        logging.info("Connected to MQTT")
-    else:
-        logging.fatal("Failed to connect to MQTT, return code: %d\n", rc)
-
-def start_mqtt_client():
-    global MQTT_CLIENT_INSTANCE
-    broker_host = os.environ.get("MQTT_HOST")
-    if broker_host is None:
-        logging.fatal("broker host is empty")
-    broker_port = os.environ.get("MQTT_PORT")
-    if broker_port is None:
-        broker_port = 1883
-    else:
-        broker_port = int(broker_port)
-
-    client_id = "horizon-hues-{}".format(random.randint(0, 1000))
-
-    MQTT_CLIENT_INSTANCE = mqtt_client.Client(client_id=client_id)
-    MQTT_CLIENT_INSTANCE.on_connect = on_mqtt_connect
-    MQTT_CLIENT_INSTANCE.connect(broker_host, broker_port)
-    MQTT_CLIENT_INSTANCE.loop_start()
-
-def calculate_dusk_dawn():
-    lon, lat = get_lon_lat()
-
-    sun_obj = suntime.Sun(lat=lat, lon=lon)
-
-    today = datetime.date.today()
-
-    today_sunrise = sun_obj.get_local_sunrise_time(today)
-    today_sunset = sun_obj.get_local_sunset_time(today)
-
-    return today_sunrise, today_sunset
-
-def sunrise_event():
-    MQTT_CLIENT_INSTANCE.publish(topic=topics.SEND_MESSAGE, payload="Sunrise is coming!")
-
-def sunset_event():
-
-    MQTT_CLIENT_INSTANCE.publish(topic=topics.SEND_MESSAGE, payload="Sunset is coming!")
-
-    tomorrow_zero_hour = get_tomorrow_zero_hour()
-    SCHEDULER.add_job(zero_hour_event, 'date', run_date=tomorrow_zero_hour)
-
-def zero_hour_event():
-    sr, ss = calculate_dusk_dawn()
-
-    SCHEDULER.add_job(sunrise_event, 'date', run_date=sr)
-    SCHEDULER.add_job(sunset_event, 'date', run_date=ss)
-
-def get_tomorrow_zero_hour(curr_datetime: datetime.datetime | None = None):
-    if curr_datetime is None:
-        curr_datetime = datetime.datetime.now()
-    tomorrow = curr_datetime + datetime.timedelta(days=1)
-    tomorrow_zero_hour = tomorrow.replace(hour=0, minute=1)
-    return tomorrow_zero_hour
+import mqttmodule
+import scheduler
+from env import Env
+from dbaccess import MongoDbAccess
+from dailyevents import DailyEvent
 
 def main():
-    global SCHEDULER
     logging.basicConfig(format='%(asctime)s %(levelname)-8s %(message)s', level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
 
-    start_mqtt_client()
-
-    SCHEDULER = BlockingScheduler()
+    broker_host, broker_port = Env.get_mqtt_connection_params()
+    if broker_host is None:
+        logging.fatal("broker host is empty")
     
-    sr, ss = calculate_dusk_dawn()
+    mongo_url = Env.get_mongo_connection_url()
+    if mongo_url is None:
+        logging.fatal("mongo url is empty")
 
-    current_datetime = datetime.datetime.now()
+    mqttmodule.start_mqtt_client(broker_host=broker_host, broker_port=broker_port)
 
-    if current_datetime.timestamp() < sr.timestamp():
-        next_run = sr
-        scheduled_fn = sunrise_event
-    elif current_datetime.timestamp() > sr.timestamp() and current_datetime.timestamp() < ss.timestamp():
-        next_run = ss
-        scheduled_fn = sunset_event
-    else:
-        next_run = get_tomorrow_zero_hour(curr_datetime=current_datetime)
-        scheduled_fn = zero_hour_event
+    with MongoDbAccess(mongo_url=mongo_url) as mongo_db_access:
 
-    SCHEDULER.add_job(scheduled_fn, 'date', run_date=next_run)
+        cursor = mongo_db_access.get_timings()
+        if cursor is None:
+            logging.fatal("error to get mongo collection")
 
-    try:
-        logging.info("starting scheduler...")
-        SCHEDULER.start()
-    except (KeyboardInterrupt, SystemExit):
-        pass
+        for schedule in cursor:
+            if DailyEvent(schedule["type"]) == DailyEvent.WAKEUP_TIME:
+                job = chrono.wakeup_event
+            elif DailyEvent(schedule["type"]) == DailyEvent.BED_TIME:
+                job = chrono.bedtime_event
+            else:
+                job = chrono.custom_time_event
+
+            scheduler.add_cron_job(job, schedule["hour"], schedule["minute"])
+
+    nearest_job, date = chrono.get_nearest_event()
+
+    scheduler.add_planned_job(nearest_job, date)
+
+    logging.info("starting scheduler")
+    scheduler.start_scheduler()
+    logging.info("scheduler finished")
 
 if __name__ == '__main__':
     main()
