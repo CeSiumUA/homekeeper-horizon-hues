@@ -37,6 +37,9 @@ def main():
 
     nearest_job, date = chrono.get_nearest_event()
 
+    zero_hour_job_date = chrono.get_tomorrow_zero_hour()
+
+    scheduler.add_planned_job(chrono.zero_hour_event, zero_hour_job_date)
     scheduler.add_planned_job(nearest_job, date)
 
     logging.info("starting scheduler")
