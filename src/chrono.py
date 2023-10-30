@@ -68,5 +68,8 @@ def get_nearest_event():
     elif current_datetime.timestamp() > sr.timestamp() and current_datetime.timestamp() < ss.timestamp():
         next_run = ss
         scheduled_fn = sunset_event
+    else:
+        scheduled_fn = None
+        next_run = None
 
     return scheduled_fn, next_run

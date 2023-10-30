@@ -36,11 +36,12 @@ def main():
             scheduler.add_cron_job(job, schedule["hour"], schedule["minute"])
 
     nearest_job, date = chrono.get_nearest_event()
+    if nearest_job is not None and date is not None:
+        scheduler.add_planned_job(nearest_job, date)
 
     zero_hour_job_date = chrono.get_tomorrow_zero_hour()
 
     scheduler.add_planned_job(chrono.zero_hour_event, zero_hour_job_date)
-    scheduler.add_planned_job(nearest_job, date)
 
     logging.info("starting scheduler")
     scheduler.start_scheduler()
