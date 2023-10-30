@@ -17,13 +17,14 @@ def send_timing_event(event_type: DailyEvent):
     if Env.get_publish_to_tg():
         MQTT_CLIENT_INSTANCE.publish(topic=topics.SEND_MESSAGE, payload=f"event {event_type.name} is coming")
 
-def start_mqtt_client(broker_host: str, broker_port: int):
+def start_mqtt_client(broker_host: str, broker_port: int, broker_username : str | None = None, broker_password: str | None = None):
     global MQTT_CLIENT_INSTANCE
 
     client_id = "horizon-hues-{}".format(random.randint(0, 1000))
 
     MQTT_CLIENT_INSTANCE = mqtt_client.Client(client_id=client_id)
     MQTT_CLIENT_INSTANCE.on_connect = __on_mqtt_connect
+    MQTT_CLIENT_INSTANCE.username_pw_set(broker_username, broker_password)
     MQTT_CLIENT_INSTANCE.connect(broker_host, broker_port)
     MQTT_CLIENT_INSTANCE.loop_start()
 

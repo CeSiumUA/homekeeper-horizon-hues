@@ -5,6 +5,8 @@ class Env:
 
     MQTT_HOST = "MQTT_HOST"
     MQTT_PORT = "MQTT_PORT"
+    MQTT_USERNAME = "MQTT_USERNAME"
+    MQTT_PASSWORD = "MQTT_PASSWORD"
     MONGO_URL = "MONGO_URL"
     MONGO_HOMEKEEPER_DB = "MONGO_HOMEKEEPER_DB"
     MONGO_SCHEDULES_COLL = "MONGO_SCHEDULES_COLL"
@@ -20,7 +22,10 @@ class Env:
         else:
             broker_port = int(broker_port)
 
-        return broker_host, broker_port
+        broker_username = environ.get(Env.MQTT_USERNAME)
+        broker_password = environ.get(Env.MQTT_PASSWORD)
+
+        return broker_host, broker_port, broker_username, broker_password
         
     def get_mongo_connection_url():
         mongo_url = environ.get(Env.MONGO_URL)
