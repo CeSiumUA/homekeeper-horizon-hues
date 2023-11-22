@@ -72,4 +72,6 @@ def get_nearest_event():
         scheduled_fn = None
         next_run = None
 
+    logging.info(f'nearest job: {scheduled_fn}, run at: {next_run}')
+
     return scheduled_fn, next_run
